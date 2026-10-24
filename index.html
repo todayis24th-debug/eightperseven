@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0d">
+  <meta name="description" content="Interactive iPhone-style simulator.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <title>iPhone Simulator</title>
+  <style>
+    :root{color-scheme:dark;--bg:#09090b;--panel:#17171b;--muted:#92929c;--line:#ffffff18;--accent:#7c9cff}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100svh;background:radial-gradient(ellipse at 50% 10%,#20243a 0,#101116 36%,#080809 75%);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;color:#f7f7fb}
+    button,input,textarea{font:inherit}
+    button{cursor:pointer}
+    .layout{min-height:100svh;display:grid;grid-template-columns:minmax(240px,320px) minmax(300px,1fr);gap:clamp(18px,4vw,56px);align-items:center;max-width:1160px;margin:auto;padding:28px}
+    .intro{max-width:330px}.eyebrow{color:#9eb5ff;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700}
+    h1{font-size:clamp(32px,4vw,48px);line-height:1.03;letter-spacing:-.045em;margin:14px 0}
+    .intro p{color:#a6a6b2;line-height:1.65;font-size:14px}
+    .hint{border:1px solid var(--line);background:#ffffff08;border-radius:16px;padding:14px;margin-top:22px;color:#b9b9c4;font-size:12px;line-height:1.6}
+    .device-stage{display:flex;align-items:center;justify-content:center;min-width:0}
+    .phone{width:min(350px,76vw,calc((100svh - 38px)*.49));aspect-ratio:9/19.5;max-height:calc(100svh - 36px);position:relative;border-radius:54px;padding:10px;background:linear-gradient(145deg,#55565d,#111114 24%,#383940 54%,#09090b 78%,#62636a);box-shadow:0 35px 90px #000a,0 0 0 1px #ffffff36,inset 0 0 0 2px #ffffff22;isolation:isolate}
+    .phone:before{content:"";position:absolute;inset:3px;border-radius:51px;border:1px solid #ffffff3d;pointer-events:none;z-index:5}
+    .screen{height:100%;width:100%;overflow:hidden;border-radius:45px;position:relative;background:#101b2a;isolation:isolate}
+    .wallpaper{position:absolute;inset:0;background:radial-gradient(ellipse at 70% 30%,#ffb7c9 0,transparent 32%),radial-gradient(ellipse at 20% 55%,#9d9cff 0,transparent 37%),radial-gradient(ellipse at 60% 85%,#f1a5d5 0,transparent 35%),linear-gradient(145deg,#1b3459,#2d3163 42%,#111c37);transition:filter .2s}
+    .wallpaper:after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,#ffffff10,transparent 35%,#0003)}
+    .status{height:43px;position:absolute;top:0;left:0;right:0;z-index:8;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:11px;font-weight:700;text-shadow:0 1px 5px #0006}
+    .status-right{display:flex;gap:5px;align-items:center}.signal{font-size:12px}.battery{width:18px;height:9px;border:1.4px solid white;border-radius:3px;position:relative}.battery:before{content:"";position:absolute;inset:1px 3px 1px 1px;background:white;border-radius:1px}.battery:after{content:"";position:absolute;width:2px;height:4px;background:white;right:-4px;top:1.5px;border-radius:0 2px 2px 0}
+    .island{position:absolute;z-index:12;top:10px;left:50%;transform:translateX(-50%);width:94px;height:27px;border-radius:20px;background:#000;box-shadow:0 0 0 1px #111;transition:width .2s}
+    .island.active{width:135px}.island-dot{position:absolute;right:12px;top:8px;width:9px;height:9px;border-radius:50%;background:#1d2331;box-shadow:inset 0 0 0 1px #343a4a}
+    .lock-content{position:absolute;top:16%;left:0;right:0;text-align:center;z-index:2;text-shadow:0 2px 12px #0003;pointer-events:none}
+    .date{font-size:13px;font-weight:500}.big-time{font-size:clamp(50px,12vw,76px);letter-spacing:-.055em;font-weight:250;line-height:1.08}
+    .widgets{display:flex;justify-content:center;gap:8px;margin-top:18px}.widget{width:82px;height:70px;border:1px solid #ffffff30;background:#ffffff1a;backdrop-filter:blur(18px);border-radius:17px;padding:10px;text-align:left;font-size:10px}.widget b{display:block;font-size:20px;margin-bottom:4px}
+    .home-content{position:absolute;z-index:3;left:14px;right:14px;top:29%;bottom:32px;display:flex;flex-direction:column;justify-content:space-between;opacity:0;pointer-events:none;transition:opacity .22s}
+    .phone.unlocked .home-content{opacity:1;pointer-events:auto}.phone.unlocked .lock-content{opacity:0}
+    .app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px 8px}
+    .app{border:0;background:transparent;color:white;padding:0;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;text-shadow:0 1px 4px #0006;font-size:9px}
+    .app-icon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:24px;box-shadow:0 4px 10px #0002,inset 0 1px 1px #ffffff55;position:relative;overflow:hidden}
+    .app-icon:before{content:"";position:absolute;inset:0;background:linear-gradient(145deg,#ffffff35,transparent 55%);pointer-events:none}
+    .dock{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:10px;background:#ffffff2b;backdrop-filter:blur(22px);border:1px solid #ffffff22;border-radius:24px}
+    .dock .app-icon{width:100%;aspect-ratio:1;height:auto;border-radius:14px}
+    .homebar{position:absolute;z-index:20;bottom:7px;left:50%;transform:translateX(-50%);width:100px;height:4px;border-radius:9px;background:#fff;box-shadow:0 1px 3px #0006;cursor:pointer}
+    .lock-actions{position:absolute;bottom:24px;left:26px;right:26px;z-index:4;display:flex;justify-content:space-between;align-items:center}.round-action{width:42px;height:42px;border-radius:50%;border:1px solid #ffffff3b;background:#1115;backdrop-filter:blur(12px);color:#fff;font-size:19px}
+    .unlock-tip{position:absolute;bottom:72px;left:0;right:0;text-align:center;font-size:10px;color:#ffffffbf;z-index:4}
+    .side{position:absolute;width:3px;background:#5c5d64;border-radius:4px;left:-3px}.side.one{height:35px;top:110px}.side.two{height:58px;top:165px}.side.right{left:auto;right:-3px;top:140px;height:70px}
+    .app-window{position:absolute;z-index:15;inset:0;background:#f4f4f8;color:#18181c;display:none;flex-direction:column;padding-top:48px}.app-window.open{display:flex;animation:appear .16s ease-out}
+    @keyframes appear{from{opacity:.6;transform:scale(.985)}to{opacity:1;transform:scale(1)}}
+    .app-header{display:flex;align-items:center;justify-content:space-between;padding:8px 17px 15px;font-weight:700;font-size:21px}.back{border:0;background:#e7e7ef;color:#2767d7;border-radius:20px;padding:7px 11px;font-size:12px}
+    .app-body{padding:0 16px 22px;overflow:auto;flex:1}.app-card{background:white;border-radius:15px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px #00008;font-size:13px}.app-card small{color:#73737d}.app-card input,.app-card textarea{width:100%;border:1px solid #dddde5;border-radius:9px;padding:9px;color:#222;background:white;margin-top:8px}.app-card textarea{min-height:100px;resize:vertical}.setting-row{display:flex;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #eee;font-size:14px}.toggle{margin-left:auto;width:35px;height:21px;border-radius:20px;background:#34c759;position:relative;border:0}.toggle:after{content:"";position:absolute;right:2px;top:2px;width:17px;height:17px;border-radius:50%;background:white}
+    .messages{display:flex;flex-direction:column;gap:9px}.bubble{padding:9px 12px;border-radius:16px;max-width:82%;font-size:13px;line-height:1.4}.bubble.in{background:#e5e5eb;align-self:flex-start}.bubble.out{background:#1984ff;color:white;align-self:flex-end}.compose{display:flex;gap:7px;margin-top:12px}.compose input{min-width:0;flex:1}.compose button{border:0;background:#1685ff;color:white;border-radius:9px;padding:0 12px}
+    .toast{position:absolute;z-index:30;left:50%;bottom:35px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#111d;color:white;border:1px solid #ffffff25;border-radius:20px;padding:9px 14px;font-size:11px;white-space:nowrap;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+    .controls{width:min(350px,100%);margin-top:15px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.controls button{background:#ffffff10;border:1px solid #ffffff20;color:#eee;padding:9px 12px;border-radius:12px;font-size:12px}.controls button:hover{background:#ffffff20}.phone-column{display:flex;flex-direction:column;align-items:center}
+    @media(max-width:760px){.layout{display:flex;flex-direction:column;padding:22px 14px;gap:10px}.intro{text-align:center;max-width:500px}.intro h1{font-size:30px;margin:8px 0}.intro p{font-size:12px;margin:6px 0}.intro .hint{display:none}.eyebrow{font-size:10px}.phone{width:min(340px,82vw,calc((100svh - 180px)*.49));min-width:240px;max-height:none}.phone-column{width:100%}.controls{margin:12px 0 4px}.device-stage{width:100%}}
+    @media(max-height:700px) and (min-width:761px){.layout{padding:12px}.phone{width:min(300px,calc((100svh - 24px)*.49))}.intro h1{font-size:34px}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="intro">
+      <div class="eyebrow">INTERACTIVE WEB EXPERIENCE</div>
+      <h1>Your little<br>iPhone world.</h1>
+      <p>เว็บจำลอง iPhone ที่ลองแตะเล่นได้ เปลี่ยนวอลเปเปอร์ เปิดแอปตัวอย่าง และปรับแต่งหน้าจอได้จากในเครื่อง</p>
+      <div class="hint">วิธีเล่น: แตะหน้าจอหรือปุ่ม Home เพื่อปลดล็อก · แตะไอคอนเพื่อเปิดแอป · ใช้ปุ่มด้านล่างเพื่อปรับแต่งเครื่อง</div>
+    </section>
+    <section class="device-stage">
+      <div class="phone-column">
+        <div class="phone" id="phone">
+          <span class="side one"></span><span class="side two"></span><span class="side right"></span>
+          <div class="screen" id="screen">
+            <div class="wallpaper" id="wallpaper"></div>
+            <div class="status"><span id="statusTime">9:41</span><span class="status-right"><span>▮▮▮</span><span>⌁</span><span class="battery"></span></span></div>
+            <div class="island" id="island"><span class="island-dot"></span></div>
+            <div class="lock-content" id="lockContent">
+              <div class="date" id="dateText">วันเสาร์ที่ 24 ตุลาคม</div>
+              <div class="big-time" id="bigTime">9:41</div>
+              <div class="widgets"><div class="widget"><b>☀ 28°</b>พะเยา · แจ่มใส</div><div class="widget"><b>◉ 82%</b>แบตเตอรี่</div></div>
+            </div>
+            <div class="home-content">
+              <div class="app-grid" id="appGrid"></div>
+              <div class="dock" id="dock"></div>
+            </div>
+            <div class="lock-actions"><button class="round-action" id="flashlight" aria-label="ไฟฉาย">☼</button><button class="round-action" id="camera" aria-label="กล้อง">◉</button></div>
+            <div class="unlock-tip" id="unlockTip">แตะหน้าจอเพื่อปลดล็อก</div>
+            <div class="app-window" id="appWindow">
+              <div class="app-header"><button class="back" id="backButton">‹ หน้าจอโฮม</button><span id="appTitle">แอป</span><span style="width:65px"></span></div>
+              <div class="app-body" id="appBody"></div>
+            </div>
+            <div class="homebar" id="homebar" aria-label="กลับหน้าจอโฮม"></div>
+            <div class="toast" id="toast"></div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="unlockBtn">🔓 ปลดล็อก</button>
+          <button id="wallBtn">🎨 เปลี่ยนวอลเปเปอร์</button>
+          <button id="islandBtn">◉ Dynamic Island</button>
+          <button id="resetBtn">↺ รีเซ็ต</button>
+        </div>
+      </div>
+    </section>
+  </main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const phone = $('phone'), appWindow = $('appWindow'), appBody = $('appBody');
+  let unlocked = false, wallpaperIndex = 0, islandTimer;
+  const wallpapers = [
+    'radial-gradient(ellipse at 70% 30%,#ffb7c9 0,transparent 32%),radial-gradient(ellipse at 20% 55%,#9d9cff 0,transparent 37%),radial-gradient(ellipse at 60% 85%,#f1a5d5 0,transparent 35%),linear-gradient(145deg,#1b3459,#2d3163 42%,#111c37)',
+    'radial-gradient(ellipse at 20% 20%,#f9d976 0,transparent 30%),radial-gradient(ellipse at 80% 55%,#fc8b65 0,transparent 38%),linear-gradient(155deg,#7a3d7a,#292b67 60%,#12152f)',
+    'radial-gradient(ellipse at 50% 15%,#c1f0ff 0,transparent 34%),radial-gradient(ellipse at 70% 75%,#7c9cff 0,transparent 38%),linear-gradient(150deg,#214b68,#21224b 70%,#090e20)',
+    'radial-gradient(ellipse at 70% 25%,#f9d3e5 0,transparent 30%),radial-gradient(ellipse at 25% 70%,#b7d8c5 0,transparent 40%),linear-gradient(140deg,#685a83,#263c58 65%,#11182b)'
+  ];
+  const apps = [
+    {id:'messages',name:'Messages',icon:'●',color:'linear-gradient(145deg,#67e36f,#13a843)'},
+    {id:'photos',name:'Photos',icon:'🌈',color:'#fff'},
+    {id:'cameraApp',name:'Camera',icon:'◉',color:'linear-gradient(145deg,#777,#151515)'},
+    {id:'settings',name:'Settings',icon:'⚙',color:'linear-gradient(145deg,#aeb3bf,#5b6170)'},
+    {id:'notes',name:'Notes',icon:'▤',color:'linear-gradient(145deg,#fff5a9,#ffd33d)'},
+    {id:'weather',name:'Weather',icon:'☀',color:'linear-gradient(145deg,#62d7ff,#2878f5)'},
+    {id:'music',name:'Music',icon:'♫',color:'linear-gradient(145deg,#ff7b9c,#d91b55)'},
+    {id:'clock',name:'Clock',icon:'◷',color:'linear-gradient(145deg,#454650,#09090b)'},
+    {id:'calendar',name:'Calendar',icon:'24',color:'#fff'},
+    {id:'maps',name:'Maps',icon:'⌖',color:'linear-gradient(145deg,#80dba2,#42a5ed)'},
+    {id:'mail',name:'Mail',icon:'✉',color:'linear-gradient(145deg,#80c9ff,#1976df)'},
+    {id:'health',name:'Health',icon:'♥',color:'linear-gradient(145deg,#ffb0bf,#ed4168)'}
+  ];
+  const docks = ['phoneApp','safari','messages','music'];
+  const dockNames = {phoneApp:'Phone',safari:'Safari',messages:'Messages',music:'Music'};
+  const dockIcons = {phoneApp:'☎',safari:'◉',messages:'●',music:'♫'};
+  const dockColors = {phoneApp:'linear-gradient(145deg,#67e36f,#13a843)',safari:'linear-gradient(145deg,#7de7ff,#2677e9)',messages:'linear-gradient(145deg,#67e36f,#13a843)',music:'linear-gradient(145deg,#ff7b9c,#d91b55)'};
+  function renderIcons(){
+    $('appGrid').innerHTML = apps.map(a=>`<button class="app" data-app="${a.id}"><span class="app-icon" style="background:${a.color};color:${a.id==='photos'||a.id==='calendar'?'#222':'white'}">${a.icon}</span><span>${a.name}</span></button>`).join('');
+    $('dock').innerHTML = docks.map(id=>`<button class="app" data-app="${id}" aria-label="${dockNames[id]}"><span class="app-icon" style="background:${dockColors[id]}">${dockIcons[id]}</span></button>`).join('');
+    document.querySelectorAll('[data-app]').forEach(b=>b.addEventListener('click',()=>openApp(b.dataset.app)));
+  }
+  function setTime(){
+    const d = new Date();
+    const time = d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',hour12:false});
+    $('statusTime').textContent = time; $('bigTime').textContent = time;
+    $('dateText').textContent = d.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long'});
+  }
+  function unlock(){unlocked=true;phone.classList.add('unlocked');$('unlockTip').style.display='none';}
+  function lock(){unlocked=false;phone.classList.remove('unlocked');closeApp();$('unlockTip').style.display='block';}
+  function toast(message){const t=$('toast');t.textContent=message;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+  function showIsland(){ $('island').classList.add('active');clearTimeout(islandTimer);islandTimer=setTimeout(()=>$('island').classList.remove('active'),2400); }
+  function openApp(id){
+    if(!unlocked)unlock();
+    const titles={messages:'Messages',photos:'Photos',cameraApp:'Camera',settings:'Settings',notes:'Notes',weather:'Weather',music:'Music',clock:'Clock',calendar:'Calendar',maps:'Maps',mail:'Mail',health:'Health',phoneApp:'Phone',safari:'Safari'};
+    $('appTitle').textContent=titles[id]||'App';
+    appBody.innerHTML=appMarkup(id);
+    appWindow.classList.add('open');showIsland();
+    const save=$('saveNote'); if(save)save.addEventListener('click',()=>{localStorage.setItem('sim-note',$('noteText').value);toast('บันทึกโน้ตแล้ว');});
+    const send=$('sendMessage'); if(send)send.addEventListener('click',()=>{const v=$('messageInput').value.trim();if(!v)return;const b=document.createElement('div');b.className='bubble out';b.textContent=v;$('messageList').appendChild(b);$('messageInput').value='';$('messageList').scrollTop=$('messageList').scrollHeight;});
+    const toggle=$('darkToggle'); if(toggle)toggle.addEventListener('click',()=>{document.body.classList.toggle('lightmode');toggle.textContent=document.body.classList.contains('lightmode')?'เปิดใช้แล้ว':'เปิด';toast('เปลี่ยนการตั้งค่าแล้ว');});
+  }
+  function appMarkup(id){
+    if(id==='messages')return `<div class="messages" id="messageList"><div class="bubble in">ฮัลโหล 👋 นี่คือข้อความตัวอย่าง</div><div class="bubble out">หวัดดี! ลองพิมพ์ข้อความดูสิ ✨</div></div><div class="compose"><input id="messageInput" placeholder="iMessage" maxlength="180"><button id="sendMessage">ส่ง</button></div>`;
+    if(id==='notes')return `<div class="app-card"><small>โน้ตของฉัน · บันทึกในเบราว์เซอร์นี้</small><textarea id="noteText" placeholder="พิมพ์โน้ตของคุณ...">${escapeHtml(localStorage.getItem('sim-note')||'')}</textarea><button id="saveNote" style="margin-top:9px;border:0;border-radius:9px;background:#ffd43b;padding:9px 14px;color:#222">บันทึกโน้ต</button></div>`;
+    if(id==='settings')return `<div class="app-card"><div class="setting-row">✈️ โหมดเครื่องบิน <button class="toggle" id="darkToggle">เปิด</button></div><div class="setting-row">📶 Wi‑Fi <span style="margin-left:auto;color:#34a853">เชื่อมต่อแล้ว</span></div><div class="setting-row">🔵 Bluetooth <span style="margin-left:auto;color:#34a853">เปิด</span></div><div class="setting-row">🔋 แบตเตอรี่ <span style="margin-left:auto">82%</span></div><div class="setting-row">🎨 วอลเปเปอร์ <button class="back" onclick="document.getElementById('wallBtn').click()">เปลี่ยน</button></div><p style="color:#777;font-size:11px">นี่คือหน้าตาจำลอง การตั้งค่าไม่ได้เปลี่ยนการทำงานจริงของอุปกรณ์</p></div>`;
+    if(id==='photos')return `<div class="app-card"><b>คลังรูปภาพ</b><p>รูปภาพตัวอย่างของคุณจะอยู่ที่นี่</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">${wallpapers.map((w,i)=>`<button aria-label="เลือกวอลเปเปอร์ ${i+1}" data-wall="${i}" style="height:75px;border:0;border-radius:9px;background:${w}"></button>`).join('')}</div><small>แตะรูปเพื่อใช้เป็นวอลเปเปอร์</small></div>`;
+    if(id==='cameraApp')return `<div style="background:#111;color:white;border-radius:18px;min-height:300px;display:grid;place-items:center;text-align:center;padding:20px"><div><div style="font-size:55px">◉</div><p>กล้องจำลอง</p><button id="fakeShutter" style="width:58px;height:58px;border-radius:50%;border:5px solid white;background:#ddd"></button><p style="font-size:11px;color:#bbb">ปุ่มชัตเตอร์เป็นเพียงการจำลอง</p></div></div>`;
+    if(id==='weather')return `<div class="app-card" style="text-align:center;background:linear-gradient(145deg,#56c6f5,#3978ed);color:white;padding:25px"><small style="color:#e8f7ff">พะเยา</small><div style="font-size:60px">☀️</div><div style="font-size:45px;font-weight:200">28°</div><div>แจ่มใส</div><p>สูงสุด 31° · ต่ำสุด 24°</p></div>`;
+    if(id==='music')return `<div class="app-card" style="text-align:center"><div style="height:180px;border-radius:14px;background:linear-gradient(145deg,#ff9bb6,#7546a8);display:grid;place-items:center;font-size:60px">♫</div><h3>เพลงโปรดของคุณ</h3><small>Demo track · Simulator</small><p><button class="back" id="playMusic">▶ เล่น / หยุด</button></p></div>`;
+    if(id==='clock')return `<div class="app-card" style="text-align:center"><div style="font-size:42px" id="clockLive">${new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div><p>เวลาปัจจุบันของเครื่อง</p><small>นาฬิกาจำลอง</small></div>`;
+    if(id==='calendar')return `<div class="app-card"><small>วันนี้</small><h2>${new Date().toLocaleDateString('th-TH',{day:'numeric',month:'long'})}</h2><p>ไม่มีรายการนัดหมาย</p></div>`;
+    if(id==='maps')return `<div class="app-card" style="text-align:center"><div style="font-size:70px">🗺️</div><h3>แผนที่จำลอง</h3><p>นี่เป็นหน้าตาตัวอย่าง ไม่มีข้อมูลตำแหน่งจริง</p></div>`;
+    if(id==='mail')return `<div class="app-card"><b>กล่องเข้า</b><p>ยินดีต้อนรับสู่ Mail จำลอง</p><small>ยังไม่มีอีเมลใหม่</small></div>`;
+    if(id==='health')return `<div class="app-card" style="text-align:center"><div style="font-size:55px;color:#ed4168">♥</div><h3>สุขภาพ</h3><p>ก้าวเดินวันนี้</p><strong>4,280 ก้าว</strong><p><small>ข้อมูลตัวอย่างเท่านั้น</small></p></div>`;
+    if(id==='phoneApp')return `<div class="app-card" style="text-align:center"><div style="font-size:50px">☎</div><h3>รายการโปรด</h3><p>ยังไม่มีรายชื่อผู้ติดต่อ</p><input placeholder="ค้นหารายชื่อ"></div>`;
+    if(id==='safari')return `<div class="app-card"><b>Safari</b><input id="urlInput" placeholder="ค้นหาหรือป้อนที่อยู่เว็บไซต์"><button id="goUrl" style="margin-top:8px;border:0;border-radius:9px;background:#1685ff;color:white;padding:9px 14px">เปิดเว็บไซต์</button><p><small>เว็บไซต์จะเปิดในแท็บใหม่ของเบราว์เซอร์</small></p></div>`;
+    return `<div class="app-card">แอปจำลอง</div>`;
+  }
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function closeApp(){appWindow.classList.remove('open');}
+  $('screen').addEventListener('click',e=>{if(appWindow.classList.contains('open'))return;if(!unlocked)unlock();});
+  $('unlockBtn').addEventListener('click',()=>{unlock();toast('ปลดล็อกแล้ว');});
+  $('homebar').addEventListener('click',()=>{if(appWindow.classList.contains('open'))closeApp();else if(unlocked)lock();else unlock();});
+  $('backButton').addEventListener('click',closeApp);
+  $('wallBtn').addEventListener('click',()=>{wallpaperIndex=(wallpaperIndex+1)%wallpapers.length;$('wallpaper').style.background=wallpapers[wallpaperIndex];toast('เปลี่ยนวอลเปเปอร์แล้ว');});
+  $('islandBtn').addEventListener('click',()=>{showIsland();toast('Dynamic Island');});
+  $('resetBtn').addEventListener('click',()=>{wallpaperIndex=0;$('wallpaper').style.background=wallpapers[0];lock();toast('รีเซ็ตหน้าจอแล้ว');});
+  $('flashlight').addEventListener('click',()=>toast('ไฟฉายจำลอง'));
+  $('camera').addEventListener('click',()=>{unlock();openApp('cameraApp');});
+  appBody.addEventListener('click',e=>{
+    const wall=e.target.closest('[data-wall]');if(wall){wallpaperIndex=Number(wall.dataset.wall);$('wallpaper').style.background=wallpapers[wallpaperIndex];toast('ตั้งวอลเปเปอร์แล้ว');}
+    if(e.target.id==='fakeShutter')toast('ถ่ายภาพจำลองแล้ว');
+    if(e.target.id==='playMusic'){e.target.textContent=e.target.textContent.includes('เล่น')?'Ⅱ หยุด':'▶ เล่น / หยุด';toast('ไม่มีเสียงเพลงจริงในเดโมนี้');}
+    if(e.target.id==='goUrl'){let u=$('urlInput').value.trim();if(u&&!/^https?:\/\//i.test(u))u='https://'+u;if(u)window.open(u,'_blank','noopener,noreferrer');}
+  });
+  renderIcons();setTime();setInterval(setTime,15000);
+  if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+})();
+</script>
+</body>
+</html>
